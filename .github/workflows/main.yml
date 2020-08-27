@@ -41,14 +41,22 @@ jobs:
         docker-machine create --driver virtualbox default
         docker-machine env default
 
-    - name: Setup PostgreSQL
+    - name: Setup PostgreSQL on *nix
       if: matrix.os != 'windows-latest'
       run: |
         eval $(docker-machine env default) || true
         docker run --rm --name postgres -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5 postgres
-        docker ps
-        while [ "`docker inspect -f {{.State.Health.Status}} postgres`" != "healthy" ]; do docker ps && sleep 2; done
-        docker ps
+        docker ps -a
+        while [ "`docker inspect -f {{.State.Health.Status}} postgres`" != "healthy" ]; do docker ps -a && sleep 2; done
+        docker ps -a
+
+    - name: Setup PostgreSQL on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        docker run --name postgres -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5 stellirin/postgres-windows:12
+        docker ps -a
+        while ( (docker inspect -f "{{.State.Health.Status}}" postgres) -ne "healthy" ) { docker ps -a; docker logs -f postgres; sleep 2 }
+        docker ps -a
     
     - name: Configure env vars on macos
       if: matrix.os == 'macos-latest'
@@ -58,7 +66,6 @@ jobs:
 
     - name: Run tests
       env:
-        TESTRUNNER_RUN_POSTGRES_TESTS: "${{ matrix.os != 'windows-latest' }}"
         TESTRUNNER_RUN_SQLITE_TESTS: "${{ matrix.os == 'windows-latest' }}"
       run: |
         oscript ./tasks/coverage.os
