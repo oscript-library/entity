@@ -30,7 +30,7 @@ jobs:
 
     - name: Install docker
       if: matrix.os != 'windows-latest'
-      uses: crazy-max/ghaction-setup-docker@v1
+      uses: crazy-max/ghaction-setup-docker@v2
       timeout-minutes: 12
 
     - name: Setup PostgreSQL
